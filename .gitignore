@@ -1,4 +1,5 @@
 venv/
 .vscode/
-geckodriver.exe/
+geckodriver.exe
+Summit-11/
 .venv/
