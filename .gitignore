@@ -1,5 +1,4 @@
 venv/
 .vscode/
-Summit-11/
-zain_games/
-geckodriver.exe
+geckodriver.exe/
+.venv/
