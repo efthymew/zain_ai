@@ -1,6 +1,10 @@
 venv/
 .vscode/
+dolphin-scripting-preview3-x64/
 geckodriver.exe
 Summit-11/
+frame_parsing/avi_output/
+frame_parsing/output/
 .venv/
 *_driver.py
+
