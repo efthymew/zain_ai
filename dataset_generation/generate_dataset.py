@@ -3,8 +3,6 @@
         skip every 12 frames to keep it relatively realistic in reacting
 """
 
-from PIL import Image
-import io
 import numpy as np
 import cv2
 
@@ -34,20 +32,32 @@ class GCInputs(TypedDict, total=False):
     TriggerRight: float
 """
 
-def merge_and_format_data(input_data, pixel_data, length, frame_skip=10):
+def merge_and_format_data_sliding_window(input_data, pixel_data, length, frame_skip=10):
+    # gather every 10 frames of pixel data
+    # map pixel data of past 10 frames to next 10 frames of actions
+    x_data = []
+    y_data = []
+    for index in range(frame_skip, length - frame_skip + 1, frame_skip):
+
+        x_data.append(pixel_data[index - frame_skip:index])
+        # dependent variable add
+        # next 10 frames of action
+        next_inputs = np.array(input_data[index:index + frame_skip], dtype=np.float32)
+        y_data.append(next_inputs)
+
+    return np.array(x_data), np.array(y_data)
+
+def merge_and_format_data_everyframe(input_data, pixel_data, length):
     # gather every 10 frames of pixel data
     # map pixel input to next 10 frames of output
     x_data = []
     y_data = []
-    for index in range(0, length, frame_skip):
-        # independent variable add
-        x_data.append(pixel_data[index])
+    for index in range(0, length):
 
+        x_data.append(pixel_data[index])
         # dependent variable add
         # next 10 frames of action
-        next_inputs = np.array(input_data[index:index + frame_skip], dtype=np.float32)
-        if len(next_inputs) < 10:
-            next_inputs = np.resize(next_inputs, (10, 18))
+        next_inputs = np.array(input_data[index], dtype=np.float32)
         y_data.append(next_inputs)
 
     return np.array(x_data), np.array(y_data)
@@ -132,7 +142,7 @@ def generate_dataset(slippi_file_name):
         rgba_frames.append(image)
         count += 1
     
-    x_data, y_data = merge_and_format_data(input_frames, rgba_frames, maximum)
+    x_data, y_data = merge_and_format_data_sliding_window(input_frames, rgba_frames, maximum)
     # Split the dataset into training and validation sets
     split = int(0.8 * len(x_data))
     x_train, x_val = x_data[:split], x_data[split:]
