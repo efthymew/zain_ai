@@ -28,8 +28,9 @@ if vcap.isOpened():
     # checks whether frames were extract
     success, image = vcap.read()
     last_frame_num = vcap.get(cv2.CAP_PROP_FRAME_COUNT)
+    image = cv2.resize(image, (636, 524))
     image_rgb2 = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-cv2.imshow("Input", image_rgb)
+cv2.imshow("Input", image_rgb2)
 cv2.waitKey(0)
 print("hi") 

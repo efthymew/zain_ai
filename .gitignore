@@ -7,4 +7,5 @@ frame_parsing/avi_output/
 frame_parsing/output/
 .venv/
 *_driver.py
+*.avi
 
