@@ -134,8 +134,7 @@ def generate_dataset(slippi_file_name):
 
        
         # resize to dimensions of internal framebuffer
-        image = cv2.resize(image, (636, 524))
-        # swap to rgb
+        image = cv2.resize(image, (318, 262))
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
         # Saves the frames
@@ -149,4 +148,8 @@ def generate_dataset(slippi_file_name):
     y_train, y_val = y_data[:split], y_data[split:]
     return x_train, y_train, x_val, y_val
 
+
+# model.predict(1-10) -> model internal state gets modified based off input 
+# model.predict(11-20)
+# 900-910
 generate_dataset("Game_20210715T231546")

@@ -1,5 +1,3 @@
-from PIL import Image
-import numpy as np
 import dolphin_memory_engine
 import time
 import difflib
