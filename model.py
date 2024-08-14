@@ -19,3 +19,15 @@
     output[0:9][16] = controller_data.triggers.physical.l
     output[0:9][17] = controller_data.triggers.physical.r
 """
+
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense, Input
+
+def get_model():
+    model = Sequential()
+    model.add(Input(batch_shape=(1, 10, 262 * 318 * 3)))
+    model.add(LSTM(units=128, input_shape=(10, 262 * 318 * 3), stateful=True, return_sequences=True))
+    model.add(Dense(units=18))
+    model.compile(optimizer='adam', loss='mse')
+
+    return model

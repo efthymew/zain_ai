@@ -38,8 +38,8 @@ def merge_and_format_data_sliding_window(input_data, pixel_data, length, frame_s
     x_data = []
     y_data = []
     for index in range(frame_skip, length - frame_skip + 1, frame_skip):
-
-        x_data.append(pixel_data[index - frame_skip:index])
+        pixels = np.array(pixel_data[index - frame_skip:index])
+        x_data.append(pixels.reshape((10, -1)))
         # dependent variable add
         # next 10 frames of action
         next_inputs = np.array(input_data[index:index + frame_skip], dtype=np.float32)
