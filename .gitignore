@@ -9,3 +9,5 @@ frame_parsing/output/
 *_driver.py
 *.avi
 *.pyc
+*.h5
+*.keras
