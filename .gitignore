@@ -10,4 +10,6 @@ frame_parsing/output/
 *.avi
 *.pyc
 *.h5
+*.npy
+*.npz
 *.keras

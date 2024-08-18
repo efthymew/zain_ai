@@ -1,22 +1,20 @@
-from model import get_model_from_file
-import numpy as np
-import cv2
 
-model = get_model_from_file()
-model.summary()
+import melee
+from button_helper import send_input_to_controller
 
-with open("F:\\Documents\\python_projects\\zain_ai\\frame_parsing\\output\\pikmin.raw", "rb") as f:
-    data = f.read()
+inputs = [[0.0 for i in range(18)] for j in range(10)]
 
-# Convert byte array to numpy array and reshape
-image_np = np.frombuffer(data, dtype=np.uint8)
-image_np = image_np.reshape((524, 636, 4))  # 4 channels for RGBA
+console = melee.Console(path="C:/Users/Graham/AppData/Roaming/Slippi Launcher/netplay/")
 
-# Convert RGBA to RGB
-image_rgb = cv2.cvtColor(image_np, cv2.COLOR_RGBA2RGB)
-image_rgb = cv2.resize(image_rgb, (318, 262))
+controller = melee.Controller(console=console, port=1)
+controller_human = melee.Controller(console=console,
+                                    port=2,
+                                    type=melee.ControllerType.GCN_ADAPTER)
 
-input_frames = np.array([[image_rgb for i in range(10)]])
+console.run()
+console.connect()
 
-output = model.predict(input_frames)
-print(output)
+controller.connect()
+controller_human.connect()
+
+send_input_to_controller(inputs[0], controller)
