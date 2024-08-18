@@ -32,9 +32,11 @@ def get_model():
     # Input shape (1, 10, 262, 318, 3)
     model.add(Input(batch_shape=(1, 10, 30)))
 
-    # early dense layer before lstm
-    model.add(Dense(units=18))
-    
+    # early dense layers before lstm
+    model.add(Dense(units=256))
+    model.add(Dense(units=256))
+    model.add(Dense(units=256))
+    model.add(Dense(units=30))
     # LSTM layer
     model.add(LSTM(units=128, stateful=True, return_sequences=True))
     

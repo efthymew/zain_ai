@@ -2,11 +2,12 @@ from model import get_model
 import os
 import tensorflow as tf
 from keras.api.callbacks import Callback
+from tensorflow.keras.layers import LSTM
 import logging
 import numpy as np
 class ResetStatesCallback(Callback):
     def on_epoch_end(self, epoch, logs=None):
-        self.model.layers[1].reset_states()
+        self.model.layers[self.lstm_index].reset_states()
 
 
 def generate_validation_data(filepath_to_dataset=r"F:\Documents\python_projects\zain_ai\dataset_generation\val_data"):
@@ -31,6 +32,15 @@ def generate_test_data(filepath_to_testgame=r"F:\Documents\python_projects\zain_
     return x_test, y_test
 
 def train_model(model, filepath_to_dataset=r"F:\Documents\python_projects\zain_ai\dataset_generation\training_data"):
+
+    # find lstm layer for state resetting
+    for i, layer in enumerate(model.layers):
+        if isinstance(layer, LSTM):
+            lstm_index = i
+    
+    callback = ResetStatesCallback()
+    callback.lstm_index = lstm_index
+
 
     validation_set = generate_validation_data()
 
@@ -61,7 +71,7 @@ def train_model(model, filepath_to_dataset=r"F:\Documents\python_projects\zain_a
     # Evaluate the model
     loss, acc = model.evaluate(x_test, y_test, verbose=2)
     print("Restored model, accuracy: {:5.2f}%".format(100 * acc))
-    model.layer[1].reset_states()
+    model.layer[lstm_index].reset_states()
     model.save('zain.keras')
 
 if __name__ == "__main__":
