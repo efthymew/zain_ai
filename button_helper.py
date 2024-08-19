@@ -22,7 +22,10 @@ def apply_deadzone(number, threshold):
     return number
 
 def neutralize_stick(number, threshold):
-    number = clamp(number)
+    number = clamp(number, -1, 1)
+    number = (number + 1) / 2 # clamp to 0 - 1 (how libmelee expects it)
+
+    # neutralize center
     upper = 0.5 + threshold
     lower = 0.5 - threshold
     if number <= upper and number >= lower:

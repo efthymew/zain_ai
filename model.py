@@ -67,7 +67,7 @@ from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D, LSTM, Dense, Ti
 from tensorflow.keras.optimizers import Adam
 
 
-def get_model(timesteps=3, dimensions=29):
+def get_model(timesteps=3, dimensions=820):
     # Define the input layer
     inputs = Input(batch_shape=(1, timesteps, dimensions))
 
@@ -76,7 +76,7 @@ def get_model(timesteps=3, dimensions=29):
     # dense up initial processing
     x = Dense(units=256, activation='relu')(inputs)
     x = Dense(units=256, activation='relu')(x)
-    x = Dense(units=256, activation='relu')(x)
+    x = Dense(units=128, activation='relu')(x)
 
     # Shared layers
     x = LSTM(64, stateful=True, return_sequences=True)(x)

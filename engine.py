@@ -124,7 +124,7 @@ while True:
     if gamestate.menu_state in [melee.Menu.IN_GAME, melee.Menu.SUDDEN_DEATH]:
         frame = gamestate.frame + 123
 
-        if frame > 0 and not frame % 10:
+        if frame > 0 and not frame % 3:
             # hypothetical input buffer extend
             print(f"frame buffer input: {frame_buffer}")
             model_prediction = model.predict(np.array([frame_buffer]))[0]
@@ -146,7 +146,7 @@ while True:
     elif gamestate.menu_state == melee.Menu.CHARACTER_SELECT:
         # choose character
         # reset model memory before going into game
-        # model.layers[10].reset_states()
+        model.layers[3].reset_states()
         melee.MenuHelper.choose_character(melee.Character.MARTH, gamestate, controller)
 
         if gamestate.players[controller.port].character == melee.Character.MARTH:
