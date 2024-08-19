@@ -126,6 +126,7 @@ while True:
 
         if frame > 0 and not frame % 10:
             # hypothetical input buffer extend
+            print(f"frame buffer input: {frame_buffer}")
             model_prediction = model.predict(np.array([frame_buffer]))[0]
             input_buffer.extend(model_prediction.tolist())
 
@@ -136,6 +137,7 @@ while True:
         frame_buffer.append(gamestate_to_model_input(gamestate))
         if input_buffer:
             input = input_buffer.pop(0)
+            print(f"controller input: {input}")
             send_input_to_controller(input, controller)
         # Log this frame's detailed info if we're in game
         if log:
@@ -143,6 +145,8 @@ while True:
             log.writeframe()
     elif gamestate.menu_state == melee.Menu.CHARACTER_SELECT:
         # choose character
+        # reset model memory before going into game
+        # model.layers[10].reset_states()
         melee.MenuHelper.choose_character(melee.Character.MARTH, gamestate, controller)
 
         if gamestate.players[controller.port].character == melee.Character.MARTH:

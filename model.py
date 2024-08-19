@@ -1,52 +1,113 @@
-""" architecture for the neural network of the bot. input should be 10 x m x n where m and n are the dimensions of the image to use
-    and the output is 10 x 18 where it is a sequence of the next 10 frames of actions formatted like this:
-    output[0:9][0] = is_flag_set(physical_buttons, Buttons.Physical.A)
-    output[0:9][1] = is_flag_set(physical_buttons, Buttons.Physical.B)
-    output[0:9][2] = is_flag_set(physical_buttons, Buttons.Physical.X)
-    output[0:9][3] = is_flag_set(physical_buttons, Buttons.Physical.Y)
-    output[0:9][4] = is_flag_set(physical_buttons, Buttons.Physical.Z)
-    output[0:9][5] = is_flag_set(physical_buttons, Buttons.Physical.START)
-    output[0:9][6] = is_flag_set(physical_buttons, Buttons.Physical.DPAD_UP)
-    output[0:9][7] = is_flag_set(physical_buttons, Buttons.Physical.DPAD_DOWN)
-    output[0:9][8] = is_flag_set(physical_buttons, Buttons.Physical.DPAD_LEFT)
-    output[0:9][9] = is_flag_set(physical_buttons, Buttons.Physical.DPAD_RIGHT)
-    output[0:9][10] = is_flag_set(physical_buttons, Buttons.Physical.L)
-    output[0:9][11] = is_flag_set(physical_buttons, Buttons.Physical.R)
-    output[0:9][12] = controller_data.joystick.x
-    output[0:9][13] = controller_data.joystick.y
-    output[0:9][14] = controller_data.cstick.x
-    output[0:9][15] = controller_data.cstick.y
-    output[0:9][16] = controller_data.triggers.physical.l
-    output[0:9][17] = controller_data.triggers.physical.r
-"""
+"""input data is 3 x 29 3 frames of data structured like this:
 
-from tensorflow.keras.models import Sequential, load_model
+    [
+        int(gamestate.stage.value,
+        int(port),
+        int(player.invulnerable),
+        player.jumps_left,
+        int(player.off_stage),
+        int(player.on_ground),
+        player.shield_strength,
+        player.x,
+        player.y,
+        player.percent,
+        player.stock,
+        int(player.action.value),
+        int(player.action_frame),
+        player.hitstun_frames_left,
+        player.hitlag_left,
+        int(port),
+        int(player.invulnerable),
+        player.jumps_left,
+        int(player.off_stage),
+        int(player.on_ground),
+        player.shield_strength,
+        player.x,
+        player.y,
+        player.percent,
+        player.stock,
+        int(player.action.value),
+        int(player.action_frame),
+        player.hitstun_frames_left,
+        player.hitlag_left
+    ]
+
+    output is three layers
+    3 x 12 for buttons
+    [
+        is_flag_set(physical_buttons, Buttons.Physical.A),
+        is_flag_set(physical_buttons, Buttons.Physical.B),
+        is_flag_set(physical_buttons, Buttons.Physical.X),
+        is_flag_set(physical_buttons, Buttons.Physical.Y),
+        is_flag_set(physical_buttons, Buttons.Physical.Z),
+        is_flag_set(physical_buttons, Buttons.Physical.L),
+        is_flag_set(physical_buttons, Buttons.Physical.R),
+        is_flag_set(physical_buttons, Buttons.Physical.START),
+        is_flag_set(physical_buttons, Buttons.Physical.DPAD_UP),
+        is_flag_set(physical_buttons, Buttons.Physical.DPAD_DOWN),
+        is_flag_set(physical_buttons, Buttons.Physical.DPAD_LEFT),
+        is_flag_set(physical_buttons, Buttons.Physical.DPAD_RIGHT)
+    ]
+    3 x 4 for sticks
+    [
+        controller_data.joystick.x,
+        controller_data.joystick.y,
+        ontroller_data.cstick.x,
+        controller_data.cstick.y
+    ]
+    3 x 2 for triggers
+    [
+        controller_data.triggers.physical.l,
+        controller_data.triggers.physical.r
+    ]
+""" 
+
+from tensorflow.keras.models import Model, load_model
 from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D, LSTM, Dense, TimeDistributed, Flatten
+from tensorflow.keras.optimizers import Adam
 
-from keras.src.legacy.saving import legacy_h5_format
 
+def get_model(timesteps=3, dimensions=29):
+    # Define the input layer
+    inputs = Input(batch_shape=(1, timesteps, dimensions))
 
-def get_model():
-    model = Sequential()
+    optimizer = Adam(learning_rate=0.00001)
+
+    # dense up initial processing
+    x = Dense(units=256, activation='relu')(inputs)
+    x = Dense(units=256, activation='relu')(x)
+    x = Dense(units=256, activation='relu')(x)
+
+    # Shared layers
+    x = LSTM(64, stateful=True, return_sequences=True)(x)
+
+    # Third output (e.g., button presses)
+    button_output = Dense(12, activation='sigmoid', name='buttons')(x)
+
+    # First output (e.g., joystick values)
+    joystick_output = Dense(4, activation='linear', name='sticks')(x)
+
+    # Second output (e.g., trigger values)
+    trigger_output = Dense(2, activation='linear', name='triggers')(x)
+
     
-    # Input shape (1, 10, 262, 318, 3)
-    model.add(Input(batch_shape=(1, 10, 30)))
+    model = Model(inputs=inputs, outputs=[button_output, joystick_output, trigger_output])
 
-    # early dense layers before lstm
-    model.add(Dense(units=256))
-    model.add(Dense(units=256))
-    model.add(Dense(units=256))
-    model.add(Dense(units=30))
-    # LSTM layer
-    model.add(LSTM(units=128, stateful=True, return_sequences=True))
-    
-    # Final Dense layer for output
-    model.add(Dense(units=18))
-    
     # Compile the model
-    model.compile(optimizer='adam', loss='mse')
-
+    model.compile(
+        optimizer=optimizer,
+        loss={
+            'sticks': 'mean_squared_error',
+            'triggers': 'mean_squared_error',
+            'buttons': 'binary_crossentropy'
+        },
+        metrics={
+            'sticks': 'mse',
+            'triggers': 'mse',
+            'buttons': 'accuracy'
+        }
+    )
     return model
 
 def get_model_from_file(filepath):
-    return legacy_h5_format.load_model_from_hdf5(filepath, custom_objects={'mse': 'mse'})
+    return load_model(filepath)
