@@ -10,6 +10,25 @@ import slippi
 from slippi.id import CSSCharacter
 from slippi.event import Buttons
 
+def clamp(n, min=0.0, max=1.0): 
+    if n < min: 
+        return min
+    elif n > max: 
+        return max
+    else: 
+        return n 
+    
+def neutralize_stick(number, threshold):
+    number = clamp(number, -1, 1)
+    number = (number + 1) / 2 # clamp to 0 - 1 (how libmelee expects it)
+
+    # neutralize center
+    upper = 0.5 + threshold
+    lower = 0.5 - threshold
+    if number <= upper and number >= lower:
+        number = 0.5
+    return number
+
 """
 class GCInputs(TypedDict, total=False):
     A: bool
@@ -71,10 +90,10 @@ def get_slippi_inputs(slippi_frames, zain_port):
         buttons[9] = is_flag_set(physical_buttons, Buttons.Physical.DPAD_DOWN)
         buttons[10] = is_flag_set(physical_buttons, Buttons.Physical.DPAD_LEFT)
         buttons[11] = is_flag_set(physical_buttons, Buttons.Physical.DPAD_RIGHT)
-        buttons[12] = controller_data.joystick.x
-        buttons[13] = controller_data.joystick.y
-        buttons[14] = controller_data.cstick.x
-        buttons[15] = controller_data.cstick.y
+        buttons[12] = neutralize_stick(controller_data.joystick.x, 0)
+        buttons[13] = neutralize_stick(controller_data.joystick.y, 0)
+        buttons[14] = neutralize_stick(controller_data.cstick.x, 0)
+        buttons[15] = neutralize_stick(controller_data.cstick.y, 0)
         buttons[16] = controller_data.triggers.physical.l
         buttons[17] = controller_data.triggers.physical.r
 
@@ -99,38 +118,29 @@ def normalize_game_data(data):
 
     # encode stage
     encoded_stage = stage_encoder.transform(np.array([str(int(data[0]))]).reshape(-1, 1))[0].tolist()
-    # encode actions
-    encoded_marth_action = action_encoder.transform(np.array([str(int(data[11]))]).reshape(-1, 1))[0].tolist()
-    encoded_opp_action = action_encoder.transform(np.array([str(int(data[22]))]).reshape(-1, 1))[0].tolist()
 
     # ports
     data[1] = (data[1] - 1) / 3
-    data[12] = (data[12] - 1) / 3
+    data[11] = (data[11] - 1) / 3
     # stocks
     data[10] = (data[10] - 1) / 3
-    data[21] = (data[21] - 1) / 3
+    data[20] = (data[20] - 1) / 3
     # shield
     data[6] = (data[6]) / 60
-    data[17] = (data[17]) / 60
+    data[16] = (data[16]) / 60
 
     # percent
     data[9] = (data[9]) / 1000
-    data[20] = (data[20]) / 1000
+    data[19] = (data[19]) / 1000
 
     # position
     data[7] = (data[7] - min_x_stage) / (max_x_stage - min_x_stage)
     data[8] = (data[8] - min_y_stage) / (max_y_stage - min_y_stage)
-    data[18] = (data[18] - min_x_stage) / (max_x_stage - min_x_stage)
-    data[19] = (data[19] - min_y_stage) / (max_y_stage - min_y_stage)
+    data[17] = (data[17] - min_x_stage) / (max_x_stage - min_x_stage)
+    data[18] = (data[18] - min_y_stage) / (max_y_stage - min_y_stage)
 
     # add stage
     data = encoded_stage + data[1:]
-
-    # add marth action
-    data = data[:18] + encoded_marth_action + data[19:]
-
-    # add opp action
-    data = data[:-1] + encoded_opp_action
 
     data = np.array(data, dtype=np.float32)
     data = data.flatten()
@@ -157,14 +167,12 @@ def generate_player_data(port, player: melee.PlayerState):
             player.position.y,
             player.percent,
             player.stock,
-            int(player.action.value)
         ]
     )
     return data
 
-def gamestate_to_model_input(gamestate: melee.GameState, zain_port):
+def gamestate_to_model_input(gamestate: melee.GameState):
     
-    zain_port += 1 ## zero indexedw when passed
     data = []
 
     data.append(int(gamestate.stage.value))
@@ -175,7 +183,7 @@ def gamestate_to_model_input(gamestate: melee.GameState, zain_port):
     other_player_state = None
 
     for port, player in gamestate.players.items():
-        if port == zain_port:
+        if player.character == melee.Character.MARTH and player.costume == 1:
             zain_state = generate_player_data(port, player)
         else:
             other_player_state = generate_player_data(port, player)
@@ -197,7 +205,7 @@ def filter_inputs_to_frame_windows(input_frames, frame_skip=10):
         y_data.append(next_inputs)
     return np.array(y_data)
 
-def get_frame_data(console: melee.Console, zain_port, length, frame_skip=10):
+def get_frame_data(console: melee.Console, length, frame_skip=10):
     console.connect()
     count = 0
     data = []
@@ -207,7 +215,7 @@ def get_frame_data(console: melee.Console, zain_port, length, frame_skip=10):
         # step() returns None when the file ends
         if gamestate is None:
             break
-        curr_stream.append(gamestate_to_model_input(gamestate, zain_port))
+        curr_stream.append(gamestate_to_model_input(gamestate))
         count += 1
         if count >= length - frame_skip + 1:
             break
@@ -235,7 +243,7 @@ def generate_dataset_for_file(slippi_file_name, frame_skip=10):
 
     zain_port = get_zain_port(game)
     
-    x_data = get_frame_data(console, zain_port, length, frame_skip)
+    x_data = get_frame_data(console, length, frame_skip)
     y_data_button, y_data_sticks, y_data_triggers = get_input_data(game, zain_port, frame_skip)
 
     return x_data, y_data_button, y_data_sticks, y_data_triggers
@@ -261,4 +269,4 @@ def generate_full_dataset(filepath_root=r"F:\Documents\python_projects\zain_ai\d
 
 
 if __name__ == "__main__":
-    generate_full_dataset(frame_skip=3)
+    generate_full_dataset(frame_skip=10)

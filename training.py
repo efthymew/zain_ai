@@ -1,4 +1,4 @@
-from model import get_model
+from model import get_model, get_model_from_file
 import os
 import tensorflow as tf
 from keras.api.callbacks import Callback
@@ -78,20 +78,19 @@ def train_model(model, filepath_to_dataset=r"F:\Documents\python_projects\zain_a
                     "sticks": y_stick_val,
                     "triggers":  y_trigger_val
                     
-                }),
-                callbacks=[callback]
+                })
             )
             count = (count + 1) % len(validation_set)
 
-    x_test, y_button_test, y_stick_test, y_trigger_test = generate_test_data()
-    # Evaluate the model
-    loss, acc = model.evaluate(x_test, {
-        "buttons": y_button_test,
-        "sticks": y_stick_test,
-        "triggers":  y_trigger_test
-    }, verbose=2)
-    print("Restored model, accuracy: {:5.2f}%".format(100 * acc))
-    model.layer[lstm_index].reset_states()
+    # x_test, y_button_test, y_stick_test, y_trigger_test = generate_test_data()
+    # # Evaluate the model
+    # loss, acc = model.evaluate(x_test, {
+    #     "buttons": y_button_test,
+    #     "sticks": y_stick_test,
+    #     "triggers":  y_trigger_test
+    # }, verbose=2)
+    # print("Restored model, accuracy: {:5.2f}%".format(100 * acc))
+    model.layers[lstm_index].reset_states()
     model.save('zain.keras')
 
 if __name__ == "__main__":
@@ -101,7 +100,7 @@ if __name__ == "__main__":
     print('Number of devices: {}'.format(strategy.num_replicas_in_sync))
     # Open a strategy scope.
     with strategy.scope():
-        model = get_model(timesteps=3, dimensions=29)
+        model = get_model(10, 28)
     model.summary()
 
     train_model(model)

@@ -45,7 +45,7 @@ def update_button(controller: Controller, button_type: Button, array_button_valu
         # push button
         controller.press_button(button_type)
 
-def send_input_to_controller(array, controller: Controller, button_threshold=0.6, stick_deadzone=0.1, trigger_deadzone=0.1):
+def send_input_to_controller(array, controller: Controller, button_threshold=0.5, stick_deadzone=0.02):
     index = 0
     for button in Button:
         if index >= 12:
@@ -62,14 +62,14 @@ def send_input_to_controller(array, controller: Controller, button_threshold=0.6
 
     if controller.current.button[Button.BUTTON_L]:
         # update analog if flag for l is true
-        value = apply_deadzone(l_analog, 0.1)
+        value = apply_deadzone(l_analog, 0.0)
         controller.press_shoulder(Button.BUTTON_L, value)
     
     if controller.current.button[Button.BUTTON_R]:
         # update analog if flag for r is true
-        value = apply_deadzone(r_analog, 0.1)
+        value = apply_deadzone(r_analog, 0.0)
         controller.press_shoulder(Button.BUTTON_R, value)
 
-    controller.tilt_analog(Button.BUTTON_MAIN, neutralize_stick(control_x, 0.1), neutralize_stick(control_y, 0.1))\
+    controller.tilt_analog(Button.BUTTON_MAIN, apply_deadzone(control_x, stick_deadzone) * 10, apply_deadzone(control_y, stick_deadzone) * 10)
     
-    controller.tilt_analog(Button.BUTTON_C, neutralize_stick(c_x, 0.1), neutralize_stick(c_y, 0.1))
+    controller.tilt_analog(Button.BUTTON_C, apply_deadzone(c_x, stick_deadzone), apply_deadzone(c_y, stick_deadzone))

@@ -63,29 +63,30 @@
 """ 
 
 from tensorflow.keras.models import Model, load_model
-from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D, LSTM, Dense, TimeDistributed, Flatten
+from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D, LSTM, Dense, TimeDistributed, Flatten, Dropout
 from tensorflow.keras.optimizers import Adam
 
 
-def get_model(timesteps=3, dimensions=820):
+def get_model(timesteps=3, dimensions=28):
     # Define the input layer
     inputs = Input(batch_shape=(1, timesteps, dimensions))
+    x = Dropout(0.5)(inputs)
 
-    optimizer = Adam(learning_rate=0.00001)
+    optimizer = Adam(learning_rate=1e-4, clipnorm=1.0)
 
     # dense up initial processing
-    x = Dense(units=256, activation='relu')(inputs)
-    x = Dense(units=256, activation='relu')(x)
-    x = Dense(units=128, activation='relu')(x)
+    x = Dense(units=32, activation='relu')(x)
 
     # Shared layers
-    x = LSTM(64, stateful=True, return_sequences=True)(x)
+    x = LSTM(64, stateful=False, return_sequences=True)(x)
+
+    y = Dense(units=32, activation='relu')(x)
 
     # Third output (e.g., button presses)
     button_output = Dense(12, activation='sigmoid', name='buttons')(x)
 
     # First output (e.g., joystick values)
-    joystick_output = Dense(4, activation='linear', name='sticks')(x)
+    joystick_output = Dense(4, activation='linear', name='sticks')(y)
 
     # Second output (e.g., trigger values)
     trigger_output = Dense(2, activation='linear', name='triggers')(x)

@@ -103,10 +103,24 @@ if not controller.connect():
     sys.exit(-1)
 print("Controller connected")
 
-model = get_model()
+model = get_model_from_file("zain.keras")
+
+# # load test inputs
+# test = np.load(r"F:\Documents\python_projects\zain_ai\dataset_generation\training_data\game0_training_data.npz")
+# test_buttons = test["y_button"]
+# test_sticks = test["y_sticks"]
+# test_triggers = test["y_triggers"]
 
 # Main loop
 input_buffer = []
+# for i in range(len(test_buttons)):
+#     for j in range(len(test_buttons[i])):
+#         # add inputs to frames in order
+#         frame_inputs = []
+#         frame_inputs.extend(test_buttons[i][j].tolist())
+#         frame_inputs.extend(test_sticks[i][j].tolist())
+#         frame_inputs.extend(test_triggers[i][j].tolist())
+#         input_buffer.append(frame_inputs)
 frame_buffer = []
 
 while True:
@@ -124,11 +138,19 @@ while True:
     if gamestate.menu_state in [melee.Menu.IN_GAME, melee.Menu.SUDDEN_DEATH]:
         frame = gamestate.frame + 123
 
-        if frame > 0 and not frame % 3:
+        if frame > 0 and not frame % 10:
             # hypothetical input buffer extend
-            print(f"frame buffer input: {frame_buffer}")
-            model_prediction = model.predict(np.array([frame_buffer]))[0]
-            input_buffer.extend(model_prediction.tolist())
+            # print(f"frame buffer input: {frame_buffer}")
+            inputs = []
+            model_prediction = model.predict(np.array([frame_buffer]))
+            for i in range(10):
+                # add inputs to frames in order
+                frame_inputs = []
+                frame_inputs.extend(model_prediction[0][0][i].tolist())
+                frame_inputs.extend(model_prediction[1][0][i].tolist())
+                frame_inputs.extend(model_prediction[2][0][i].tolist())
+                inputs.append(frame_inputs)
+            input_buffer.extend(inputs)
 
             # flush buffer of frames
             frame_buffer = []
@@ -146,7 +168,7 @@ while True:
     elif gamestate.menu_state == melee.Menu.CHARACTER_SELECT:
         # choose character
         # reset model memory before going into game
-        model.layers[3].reset_states()
+        # model.layers[3].reset_states()
         melee.MenuHelper.choose_character(melee.Character.MARTH, gamestate, controller)
 
         if gamestate.players[controller.port].character == melee.Character.MARTH:
